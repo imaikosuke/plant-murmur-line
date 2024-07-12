@@ -34,8 +34,8 @@ async def webhook(request: Request):
 
         # LINE Messaging APIからのリクエストを検証
         if 'events' not in body or not body['events']:
-            logger.error("Invalid request body")
-            raise HTTPException(status_code=400, detail="Invalid request body")
+            logger.warning("Received empty events list")
+            return {"status": "ok"}
 
         event = body['events'][0]
         if event['type'] != 'message' or event['message']['type'] != 'text':
@@ -52,7 +52,13 @@ async def webhook(request: Request):
             prompt=prompt,
             max_tokens=50
         )
-        plant_response = response.choices[0].text.strip()
+        
+        if response.choices:
+            plant_response = response.choices[0].text.strip()
+        else:
+            logger.error("No response from OpenAI API")
+            plant_response = "ごめんなさい、今はちょっと話せません。"
+
         logger.info(f"Generated response: {plant_response}")
 
         # LINEに応答を送信
@@ -67,10 +73,14 @@ async def webhook(request: Request):
         response = requests.post('https://api.line.me/v2/bot/message/reply', headers=headers, json=reply_message)
         logger.info(f"Reply sent, status code: {response.status_code}, response: {response.text}")
 
-        return "OK"
+        if response.status_code != 200:
+            logger.error(f"Error sending reply: {response.status_code}, {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+        return {"status": "ok"}
     except Exception as e:
         logger.error(f"Error processing webhook: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal Server Error")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
