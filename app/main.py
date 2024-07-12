@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException
-import openai
+from openai import OpenAI
 import requests
 from dotenv import load_dotenv
 import os
@@ -13,8 +13,8 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv('LINE_CHANNEL_ACCESS_TOKEN')
 LINE_CHANNEL_SECRET = os.getenv('LINE_CHANNEL_SECRET')
 
-# OpenAI APIキーを設定
-openai.api_key = OPENAI_API_KEY
+# OpenAIクライアントの設定
+client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = FastAPI()
 
@@ -46,20 +46,19 @@ async def webhook(request: Request):
         logger.info(f"Received message: {user_message}")
 
         # OpenAI APIを使用して植物との会話を生成
-        prompt = f"ユーザー: {user_message}\n植物: "
-        response = openai.Completion.create(
-            engine="davinci",
-            prompt=prompt,
-            max_tokens=50
-        )
-        
-        if response.choices:
-            plant_response = response.choices[0].text.strip()
-        else:
-            logger.error("No response from OpenAI API")
-            plant_response = "ごめんなさい、今はちょっと話せません。"
-
-        logger.info(f"Generated response: {plant_response}")
+        try:
+            completion = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": "あなたはユーザーが持ち主の植物です。植物が可愛く話すかのように返信してください。"},
+                    {"role": "user", "content": user_message}
+                ]
+            )
+            plant_response = completion.choices[0].message.content
+            logger.info(f"Generated response: {plant_response}")
+        except:
+            plant_response = "Zzz..."
+            logger.info(f"Generated response: {plant_response}")
 
         # LINEに応答を送信
         headers = {
