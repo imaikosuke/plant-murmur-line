@@ -15,7 +15,7 @@
 - LINE Messaging API
 
 ## Webアプリ
-WebのGitHubリポジトリは[こちら](https://github.com/imaikosuke/plant-murmur).<br>
+WebのGitHubリポジトリは[こちら](https://github.com/imaikosuke/plant-murmur-web).<br>
 Webアプリケーションでは、２つの機能があります.<br>
 1. 植物の土壌水分データの推移グラフを閲覧
 2. 植物の成長を写真で振り返り
