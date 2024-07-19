@@ -81,6 +81,34 @@ async def webhook(request: Request):
         logger.error(f"Error processing webhook: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
+@app.post("/send_line_message")
+async def send_line_message(request: Request):
+    try:
+        body = await request.json()
+        message = body.get('message')
+        if not message:
+            raise HTTPException(status_code=400, detail="Message is required")
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {LINE_CHANNEL_ACCESS_TOKEN}'
+        }
+        push_message = {
+            "to": "6421554",
+            "messages": [{"type": "text", "text": message}]
+        }
+        response = requests.post('https://api.line.me/v2/bot/message/push', headers=headers, json=push_message)
+        logger.info(f"Message sent, status code: {response.status_code}, response: {response.text}")
+
+        if response.status_code != 200:
+            logger.error(f"Error sending message: {response.status_code}, {response.text}")
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Error sending message: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
